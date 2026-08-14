@@ -1,0 +1,82 @@
+<mujoco model="bxi_elf3 scene">
+  <include file="elf3.xml"/>
+
+  <statistic center="0.3 0 1.0" extent="1" meansize="0.08"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0 0 0"/>
+    <global azimuth="180" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"
+      mark="cross" markrgb=".8 .8 .8"/>
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true"/>
+    <material name="marker" rgba="0.6 0.3 0.3 0.0"/>
+    <material name="marker_c" rgba="0 0 1 0"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3" directional="true"/>
+
+    <geom name="ground" type="plane" pos="0 0 -0.16" size="20 20 0.1" material="grid" friction="1.0 0.1 0.1"/>
+
+    <body name="com_target" pos="0.5 0 0.7" mocap="true">
+      <geom type="sphere" size=".06" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="pelvis_target" pos="0.5 0 0.5" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="left_palm_target" pos="0.5 0.2 0.6" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".04 .04 .04" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="right_palm_target" pos="0.5 -0.2 0.6" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".04 .04 .04" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="left_foot_target" pos="0.5 0.12 0.2" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".04 .04 .04" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="right_foot_target" pos="0.5 -0.12 0.2" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".04 .04 .04" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="chest_target" pos="0.5 0 0.9" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="head_target" pos="0.5 0 1.1" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="left_elbow_link_target" pos="0.45 0.25 0.7" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="right_elbow_link_target" pos="0.45 -0.25 0.7" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="left_knee_link_target" pos="0.5 0.12 0.45" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+    <body name="right_knee_link_target" pos="0.5 -0.12 0.45" quat="0 1 0 0" mocap="true">
+      <geom type="box" size=".02 .02 .02" contype="0" conaffinity="0" material="marker"/>
+      <site type="sphere" size="0.01" material="marker_c" group="1"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="init_frame" qpos="0 0 1.1 1 0 0 0 0 0 0 -0.3 0 0 0.6 0 0 -0.3 0 0 0.6 0 0 0.2 0.2 0 0.6 0 0 0 0.2 -0.2 0 0.6 0 0 0" ctrl="0 0 0 -0.3 0 0 0.6 0 0 -0.3 0 0 0.6 0 0 0.2 0.2 0 0.6 0 0 0 0.2 -0.2 0 0.6 0 0 0"/>
+  </keyframe>
+
+  <sensor>
+    <fromto geom1="l_wrist_z_collision" geom2="l_hip_z_1_collision" cutoff="1"/>
+    <fromto geom1="r_wrist_z_collision" geom2="r_hip_z_1_collision" cutoff="1"/>
+  </sensor>
+</mujoco>

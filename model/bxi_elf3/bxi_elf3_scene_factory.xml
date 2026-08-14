@@ -1,0 +1,96 @@
+<mujoco model="factory_scene">
+  <include file="elf3.xml"/>
+
+  <statistic center="7.5 5.0 0.8" extent="9.5" meansize="0.1"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0 0 0"/>
+    <global azimuth="180" elevation="-30"/>
+  </visual>
+
+  <asset>
+    <texture name="floor_tex" type="2d" builtin="flat" rgb1=".58 .62 .60" rgb2=".50 .54 .52" width="128" height="128" mark="random" markrgb=".52 .56 .54"/>
+    <material name="floor_mat" texture="floor_tex" texrepeat="20 15" texuniform="true" reflectance="0.03"/>
+    <material name="shelf_mat" rgba="0.5 0.45 0.4 1"/>
+    <material name="equip_mat" rgba="0.4 0.5 0.55 1"/>
+    <material name="agv0_mat" rgba="0.9 0.3 0.2 1"/>
+    <material name="agv1_mat" rgba="0.2 0.5 0.9 1"/>
+    <material name="agv2_mat" rgba="0.2 0.7 0.3 1"/>
+    <material name="agv3_mat" rgba="0.9 0.7 0.1 1"/>
+    <material name="lm000_mat" rgba="0.2 0.8 0.2 0.6"/>
+    <material name="lm001_mat" rgba="0.2 0.8 0.2 0.6"/>
+    <material name="lm002_mat" rgba="0.9 0.5 0.1 0.6"/>
+    <material name="lm003_mat" rgba="0.9 0.5 0.1 0.6"/>
+    <material name="lm004_mat" rgba="0.8 0.3 0.8 0.6"/>
+    <material name="lm005_mat" rgba="0.2 0.8 0.8 0.6"/>
+    <material name="lm006_mat" rgba="0.2 0.8 0.8 0.6"/>
+  </asset>
+
+  <worldbody>
+    <light pos="7.5 5.0 6" directional="true"/>
+    <geom name="ground" type="plane" pos="0 0 -0.16" size="30 30 0.1" material="floor_mat" friction="1.0 0.1 0.1"/>
+
+    <body name="obs_0" pos="9.0 8.0 0.84">
+      <geom name="obs_0_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat"/>
+    </body>
+    <body name="obs_1" pos="9.0 5.0 0.84">
+      <geom name="obs_1_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat"/>
+    </body>
+    <body name="obs_2" pos="6.5 1.0 0.59">
+      <geom name="obs_2_geom" type="box" size="1.0 0.5 0.75" material="equip_mat"/>
+    </body>
+    <body name="obs_3" pos="4.0 5.0 0.84">
+      <geom name="obs_3_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat"/>
+    </body>
+    <body name="obs_4" pos="4.0 8.0 0.84">
+      <geom name="obs_4_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat"/>
+    </body>
+    <body name="obs_5" pos="6.5 2.0 0.59">
+      <geom name="obs_5_geom" type="box" size="1.0 0.5 0.75" material="equip_mat"/>
+    </body>
+    <body name="lm_LM000" pos="4.0 4.0 -0.11">
+      <geom name="lm_LM000_geom" type="cylinder" size="0.15 0.02" material="lm000_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM001" pos="9.0 4.0 -0.11">
+      <geom name="lm_LM001_geom" type="cylinder" size="0.15 0.02" material="lm001_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM002" pos="9.0 7.0 -0.11">
+      <geom name="lm_LM002_geom" type="cylinder" size="0.15 0.02" material="lm002_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM003" pos="4.0 7.0 -0.11">
+      <geom name="lm_LM003_geom" type="cylinder" size="0.15 0.02" material="lm003_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM004" pos="13.0 8.0 -0.11">
+      <geom name="lm_LM004_geom" type="cylinder" size="0.15 0.02" material="lm004_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM005" pos="1.0 2.0 -0.11">
+      <geom name="lm_LM005_geom" type="cylinder" size="0.15 0.02" material="lm005_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM006" pos="5.0 1.0 -0.11">
+      <geom name="lm_LM006_geom" type="cylinder" size="0.15 0.02" material="lm006_mat" contype="0" conaffinity="0"/>
+    </body>
+    <!-- AGV spheres as mocap bodies: position fully controlled, no physics
+         (no ground contact, no interference with the robot's walking) -->
+    <body name="agv_0" pos="4.0 4.0 0.04" mocap="true">
+      <geom name="agv_0_geom" type="sphere" size="0.2" material="agv0_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_1" pos="4.0 7.0 0.04" mocap="true">
+      <geom name="agv_1_geom" type="sphere" size="0.2" material="agv1_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_2" pos="4.0 4.0 0.04" mocap="true">
+      <geom name="agv_2_geom" type="sphere" size="0.2" material="agv2_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_3" pos="9.0 4.0 0.04" mocap="true">
+      <geom name="agv_3_geom" type="sphere" size="0.2" material="agv3_mat" contype="1" conaffinity="1"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="init_frame" qpos="0 0 1.1 1 0 0 0 0 0 0 -0.3 0 0 0.6 0 0 -0.3 0 0 0.6 0 0 0.2 0.2 0 0.6 0 0 0 0.2 -0.2 0 0.6 0 0 0" ctrl="0 0 0 -0.3 0 0 0.6 0 0 -0.3 0 0 0.6 0 0 0.2 0.2 0 0.6 0 0 0 0.2 -0.2 0 0.6 0 0 0"/>
+  </keyframe>
+
+  <sensor>
+    <fromto geom1="l_wrist_z_collision" geom2="l_hip_z_1_collision" cutoff="1"/>
+    <fromto geom1="r_wrist_z_collision" geom2="r_hip_z_1_collision" cutoff="1"/>
+  </sensor>
+</mujoco>

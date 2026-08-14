@@ -1,0 +1,24 @@
+# ── Generated data (maps, plans, images) ──
+*.json
+*.png
+
+# ── Python artifacts ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Virtual environment ──
+.venv/
+
+# ── Editor / IDE scratch dirs ──
+.aider*
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS junk ──
+.DS_Store
+
+# ── Test output ──
+test_results/

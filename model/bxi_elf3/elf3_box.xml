@@ -1,0 +1,25 @@
+<mujoco model="elf3 with box held by arms">
+  <include file="d:/download/learning/intern/bxi_rl_controller_ros2_example/src/bxi_example_py_elf3/data/mujoco_simulation/elf3.xml"/>
+  <!-- Fix meshdir to point to ros2 assets (relative paths break with include) -->
+  <compiler meshdir="d:/download/learning/intern/bxi_rl_controller_ros2_example/src/bxi_example_py_elf3/data/mujoco_simulation/meshes"/>
+
+  <asset>
+    <material name="box_mat" rgba="0.6 0.3 0.1 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Box: free body, welded to both wrists -->
+    <body name="box" pos="0.35 0 0.85">
+      <freejoint name="box_joint"/>
+      <inertial pos="0 0 0" mass="1" diaginertia="0.02 0.03 0.02"/>
+      <geom name="box_geom" type="box" size="0.2 0.15 0.12" material="box_mat" mass="1"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <weld name="box_left_weld" body1="box" body2="l_wrist_z_link"
+          solref="0.02 1" solimp="0.9 0.95 0.001"/>
+    <weld name="box_right_weld" body1="box" body2="r_wrist_z_link"
+          solref="0.02 1" solimp="0.9 0.95 0.001"/>
+  </equality>
+</mujoco>

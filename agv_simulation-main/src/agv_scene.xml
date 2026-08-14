@@ -1,0 +1,103 @@
+<mujoco model="agv_qos_scene">
+  <!-- 纯 AGV 场景: 与 QoS 地图 map_20260730_162111.json 对齐。
+       只含地面 / 货架 / 地标 / AGV mocap 球 —— 不含机器人, 便于先验证调度。 -->
+  <statistic center="7.5 5.0 0.6" extent="12" meansize="0.1"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0 0 0"/>
+    <global azimuth="180" elevation="-35"/>
+  </visual>
+
+  <asset>
+    <texture name="floor_tex" type="2d" builtin="flat" rgb1=".58 .62 .60" rgb2=".50 .54 .52" width="128" height="128" mark="random" markrgb=".52 .56 .54"/>
+    <material name="floor_mat" texture="floor_tex" texrepeat="20 15" texuniform="true" reflectance="0.03"/>
+    <material name="shelf_mat" rgba="0.5 0.45 0.4 1"/>
+    <material name="equip_mat" rgba="0.4 0.5 0.55 1"/>
+    <material name="agv0_mat" rgba="0.9 0.3 0.2 1"/>
+    <material name="agv1_mat" rgba="0.2 0.5 0.9 1"/>
+    <material name="agv2_mat" rgba="0.2 0.7 0.3 1"/>
+    <material name="agv3_mat" rgba="0.9 0.7 0.1 1"/>
+    <material name="agv4_mat" rgba="0.6 0.2 0.8 1"/>
+    <material name="agv5_mat" rgba="0.2 0.8 0.8 1"/>
+    <material name="agv6_mat" rgba="0.9 0.5 0.6 1"/>
+    <material name="agv7_mat" rgba="0.5 0.5 0.5 1"/>
+    <material name="lm_mat" rgba="0.2 0.8 0.2 0.6"/>
+    <material name="garage_mat" rgba="0.4 0.4 0.5 0.25"/>
+    <material name="dyn_mat" rgba="0.95 0.15 0.2 0.6"/>
+  </asset>
+
+  <worldbody>
+    <light pos="7.5 5.0 6" directional="true"/>
+    <geom name="ground" type="plane" pos="0 0 -0.16" size="30 30 0.1" material="floor_mat" friction="1.0 0.1 0.1"/>
+
+    <!-- 货架 / 设备 (与 factory 场景一致, 对齐 QoS 地图障碍格) -->
+    <body name="obs_0" pos="9.0 8.0 0.84">
+      <geom name="obs_0_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obs_1" pos="9.0 5.0 0.84">
+      <geom name="obs_1_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obs_2" pos="6.5 1.0 0.59">
+      <geom name="obs_2_geom" type="box" size="1.0 0.5 0.75" material="equip_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obs_3" pos="4.0 5.0 0.84">
+      <geom name="obs_3_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obs_4" pos="4.0 8.0 0.84">
+      <geom name="obs_4_geom" type="box" size="1.5 0.35 1.00" material="shelf_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obs_5" pos="6.5 2.0 0.59">
+      <geom name="obs_5_geom" type="box" size="1.0 0.5 0.75" material="equip_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- 地标标记 -->
+    <body name="lm_LM000" pos="4.0 4.0 -0.12">
+      <geom name="lm_LM000_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM001" pos="9.0 4.0 -0.12">
+      <geom name="lm_LM001_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM002" pos="9.0 7.0 -0.12">
+      <geom name="lm_LM002_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM003" pos="4.0 7.0 -0.12">
+      <geom name="lm_LM003_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM004" pos="13.0 8.0 -0.12">
+      <geom name="lm_LM004_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM005" pos="1.0 2.0 -0.12">
+      <geom name="lm_LM005_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+    <body name="lm_LM006" pos="5.0 1.0 -0.12">
+      <geom name="lm_LM006_geom" type="cylinder" size="0.15 0.02" material="lm_mat" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- 车库: 5 辆待命 AGV 球 (agv_g0..agv_g4), 停在底部 y=0 一排整数格 (0,0)..(4,0),
+         与 QoS 格坐标对齐 (贴地: 球心 z=0.04, 底触地面)。
+         每次 add 一辆车, agv_world_qos_mujoco.py 让车先出生在车库格再开车到地标
+         (球从车库平滑驶出, 不瞬移); 超过 5 辆时把新球拼进 <!-- AGV_INSERT -->。 -->
+    <geom name="garage_pad" type="box" pos="2.0 0.0 0.02" size="2.05 0.4 0.02"
+          material="garage_mat" contype="0" conaffinity="0"/>
+    <body name="agv_g0" pos="0.0 0.0 0.04" mocap="true">
+      <geom name="agv_g0_geom" type="sphere" size="0.2" material="agv0_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_g1" pos="1.0 0.0 0.04" mocap="true">
+      <geom name="agv_g1_geom" type="sphere" size="0.2" material="agv1_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_g2" pos="2.0 0.0 0.04" mocap="true">
+      <geom name="agv_g2_geom" type="sphere" size="0.2" material="agv2_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_g3" pos="3.0 0.0 0.04" mocap="true">
+      <geom name="agv_g3_geom" type="sphere" size="0.2" material="agv3_mat" contype="1" conaffinity="1"/>
+    </body>
+    <body name="agv_g4" pos="4.0 0.0 0.04" mocap="true">
+      <geom name="agv_g4_geom" type="sphere" size="0.2" material="agv4_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- 超过车库容量 (5辆) 的新车球体: 由 agv_world_qos_mujoco.py 拼进此处 -->
+    <!-- AGV_INSERT -->
+  </worldbody>
+
+  <option gravity="0 0 -9.81"/>
+</mujoco>

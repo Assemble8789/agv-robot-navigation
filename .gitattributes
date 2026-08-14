@@ -1,0 +1,16 @@
+# 代码、脚本统一LF
+*.py text eol=lf
+*.md text eol=lf
+*.xml text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+# 二进制文件不处理换行
+*.png binary
+*.jpg binary
+*.zip binary
+*.pth binary
+*.onnx binary
+# git配置文件
+.gitignore text eol=lf
+LICENSE text eol=lf
+README* text eol=lf
