@@ -19,7 +19,7 @@ AGV（自动导引运输车）仿真实验平台，支持地图编辑、多车�
 │       ├── demo_bridge.py    入口: 建 Bus + 两节点
 │       ├── validate_agv.py   验证矩阵 (车数×路径, markdown 报告)
 │       ├── _record_trajectory.py / _playback.py   播放回放
-│       └── ...               (详见 bridge/README.md)
+│       └── ...               (详见 src/README.md)
 ├── test/             # 测试脚本
 ├── maps/             # 地图 / 规划 / 图片数据
 ├── docs/             # 设计文档 + 验证报告 (agv_validation_robot.md)
