@@ -9,6 +9,7 @@ import threading
 import queue
 import time
 import numpy as np
+from agv_map_common import load_normalized
 try:
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
@@ -86,7 +87,7 @@ def astar_with_time(width, height, obs_set, start, goal, start_time, start_dir_s
 
     x_max, y_max = x_min + width, y_min + height
 
-    max_iter = 100000
+    max_iter = 1000000
     iterations = 0
 
     while open_set and iterations < max_iter:
@@ -152,27 +153,16 @@ def astar_with_time(width, height, obs_set, start, goal, start_time, start_dir_s
 
 class AGVWorld:
     def __init__(self, map_file):
-        with open(map_file, "r") as f:
-            self.map_data = json.load(f)
+        self.map_data = load_normalized(map_file)
 
         self.width = self.map_data["width"]
         self.height = self.map_data["height"]
 
-        raw_obstacles = self.map_data.get("obstacles", [])
-        self.obstacles = []
-        has_negative = False
-        for o in raw_obstacles:
-            if isinstance(o, dict):
-                ox, oy = o["x"], o["y"]
-            else:
-                ox, oy = o[0], o[1]
-            self.obstacles.append((ox, oy))
-            if ox < 0 or oy < 0:
-                has_negative = True
-
+        self.obstacles = [tuple(o) for o in self.map_data["obstacles"]]
         self.obs_set = set(self.obstacles)
-        self.landmarks = self.map_data.get("landmarks", [])
+        self.landmarks = self.map_data["landmarks"]
 
+        has_negative = any(ox < 0 or oy < 0 for ox, oy in self.obstacles)
         self.x_min, self.y_min = (-self.width // 2, -self.height // 2) if has_negative else (0, 0)
 
         self.lm_dict = {lm["name"]: (lm["x"], lm["y"]) for lm in self.landmarks}

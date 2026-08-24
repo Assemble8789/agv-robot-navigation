@@ -42,6 +42,7 @@ import time
 import os
 import sys
 from collections import deque
+from agv_map_common import load_normalized
 
 # ── 与 agv_world_qos 相同的运动学常量 (独立副本, 不 import) ──
 DIR_MAP = {'x+': 0, 'y+': 1, 'x-': 2, 'y-': 3}
@@ -171,7 +172,7 @@ def _astar_core(width, height, obs_set, start, goal, start_time, start_dir_str,
 
     x_max, y_max = x_min + width, y_min + height
 
-    max_iter = 100000
+    max_iter = 1000000
     iterations = 0
 
     while open_set and iterations < max_iter:
@@ -262,13 +263,10 @@ def _plan_sequence(map_file, chains, hfun, stagger=2, n_landmarks=6, verbose=Fal
                    fix_g=False):
     """用同一套预约登记逻辑 (对齐 AGVWorld.move_car) 顺序规划多车链式路线。
     仅启发式不同 → 统计差异 = 启发式带来的差异。"""
-    with open(map_file, "r") as f:
-        m = json.load(f)
+    m = load_normalized(map_file)
     width, height = m["width"], m["height"]
-    obs_set = set()
-    for o in m.get("obstacles", []):
-        obs_set.add((o[0], o[1]) if isinstance(o, list) else (o["x"], o["y"]))
-    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m.get("landmarks", [])}
+    obs_set = set(tuple(o) for o in m["obstacles"])
+    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m["landmarks"]}
 
     reservation_info = {}            # res -> (car_id, qos)
     stats = {'expanded': 0, 'explored': 0, 'planned': 0, 'path_len': 0}
@@ -347,13 +345,10 @@ DEFAULT_CHAINS = [
 
 
 def _load_map(map_file):
-    with open(map_file, "r") as f:
-        m = json.load(f)
+    m = load_normalized(map_file)
     width, height = m["width"], m["height"]
-    obs = set()
-    for o in m.get("obstacles", []):
-        obs.add((o[0], o[1]) if isinstance(o, list) else (o["x"], o["y"]))
-    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m.get("landmarks", [])}
+    obs = set(tuple(o) for o in m["obstacles"])
+    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m["landmarks"]}
     return width, height, obs, lms
 
 
@@ -543,13 +538,10 @@ def maze_benchmark(maze_w, maze_h, n_pairs, seed, n_landmarks=6):
 
 def write_plan(map_file, chains, stagger=2, n_landmarks=6):
     """用 ALT 启发式 + move_car 的预约逻辑规划, 输出与 agv_world_qos 相同格式。"""
-    with open(map_file, "r") as f:
-        m = json.load(f)
+    m = load_normalized(map_file)
     width, height = m["width"], m["height"]
-    obs = set()
-    for o in m.get("obstacles", []):
-        obs.add((o[0], o[1]) if isinstance(o, list) else (o["x"], o["y"]))
-    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m.get("landmarks", [])}
+    obs = set(tuple(o) for o in m["obstacles"])
+    lms = {lm["name"]: (lm["x"], lm["y"]) for lm in m["landmarks"]}
     alt = build_differential(obs, width, height, n_landmarks)
     reservation_info = {}
     car_paths = []

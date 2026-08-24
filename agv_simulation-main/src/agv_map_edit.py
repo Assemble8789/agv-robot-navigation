@@ -3,6 +3,7 @@ import os
 import argparse
 import datetime
 import sys
+from agv_map_common import load_normalized
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.widgets import Button
@@ -173,41 +174,28 @@ class MapEditor:
         self.fig.canvas.draw_idle()
 
     def load_map(self, filename):
-        with open(filename, 'r') as f:
-            data = json.load(f)
-            self.width = data["width"]
-            self.height = data["height"]
-            
-            # Handle both list and dict formats for obstacles
-            raw_obstacles = data.get("obstacles", [])
-            self.obstacles = set()
-            has_negative = False
-            for o in raw_obstacles:
-                if isinstance(o, dict):
-                    ox, oy = o["x"], o["y"]
-                else:
-                    ox, oy = o[0], o[1]
-                self.obstacles.add((ox, oy))
-                if ox < 0 or oy < 0:
-                    has_negative = True
-            
-            self.landmarks = data.get("landmarks", [])
-            for lm in self.landmarks:
-                if lm["x"] < 0 or lm["y"] < 0:
-                    has_negative = True
+        data = load_normalized(filename)
+        self.width = data["width"]
+        self.height = data["height"]
 
-            # If origin is at middle, coordinates range from -width//2 to width//2-1
-            if has_negative:
-                self.is_centered = True
-                self.x_min = -self.width // 2
-                self.y_min = -self.height // 2
-            else:
-                self.is_centered = False
-                self.x_min = 0
-                self.y_min = 0
-                
-            self.filename = filename
-            print(f"Loaded map: {filename} (Centered: {self.is_centered})")
+        # load_normalized 已保证整数坐标；含负坐标时按 centered 原点处理
+        self.obstacles = set(tuple(o) for o in data["obstacles"])
+        self.landmarks = data["landmarks"]
+        has_negative = any(ox < 0 or oy < 0 for ox, oy in self.obstacles) or \
+            any(lm["x"] < 0 or lm["y"] < 0 for lm in self.landmarks)
+
+        # If origin is at middle, coordinates range from -width//2 to width//2-1
+        if has_negative:
+            self.is_centered = True
+            self.x_min = -self.width // 2
+            self.y_min = -self.height // 2
+        else:
+            self.is_centered = False
+            self.x_min = 0
+            self.y_min = 0
+            
+        self.filename = filename
+        print(f"Loaded map: {filename} (Centered: {self.is_centered})")
 
     @property
     def _out_dir(self):

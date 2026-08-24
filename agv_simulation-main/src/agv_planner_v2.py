@@ -22,14 +22,22 @@ import random
 import argparse
 import datetime
 import os
+import time
+from agv_map_common import load_normalized
 
 
-def heuristic(a, b):
+def manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
+def chebyshev(a, b):
+    # 8 方向等代价移动的真实最优启发式 (admissible + consistent)
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+
+
 def astar_with_time(width, height, obs_set, start, goal, start_time,
-                    reservations, x_min=0, y_min=0, dwell=0):
+                    reservations, x_min=0, y_min=0, dwell=0,
+                    hfun=chebyshev, stats=None):
     """
     Time-aware A* with bidirectional edge collision detection.
 
@@ -40,16 +48,21 @@ def astar_with_time(width, height, obs_set, start, goal, start_time,
     dwell: extra ticks to stay at goal after arriving.  The dwell times
     participate in reservation checking, so a later car cannot enter the
     goal while an earlier car is still dwelling there.
+
+    hfun: 启发式。默认 Chebyshev (对 8 方向等代价最优)。传 ALT Differential 可加速。
+    stats: dict, 累加 expanded(展开格数) 用于基准对比。
     """
     open_set = [(0, 0, start_time, start)]
     came_from = {}
     g_score = {start: 0}
-    f_score = {start: heuristic(start, goal)}
+    f_score = {start: hfun(start, goal)}
 
     x_max, y_max = x_min + width, y_min + height
 
     while open_set:
         _, current_g, current_t, current = heapq.heappop(open_set)
+        if stats is not None:
+            stats["expanded"] = stats.get("expanded", 0) + 1
 
         if current == goal:
             # Dwell feasibility: all dwell ticks must be free
@@ -100,33 +113,46 @@ def astar_with_time(width, height, obs_set, start, goal, start_time,
             if neighbor not in g_score or tentative_g < g_score[neighbor]:
                 came_from[neighbor] = (current, g_score[current], current_t)
                 g_score[neighbor] = tentative_g
-                f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
+                f_score[neighbor] = tentative_g + hfun(neighbor, goal)
                 heapq.heappush(open_set, (f_score[neighbor], tentative_g, nt, neighbor))
 
     return None
 
 
-def plan_paths(map_file, num_cars=0, tasks=None, stagger=2):
-    """Multi-car path planning with bidirectional edge reservations."""
-    with open(map_file, 'r') as f:
-        map_data = json.load(f)
+def plan_paths(map_file, num_cars=0, tasks=None, stagger=2, heur="alt",
+               n_alt_landmarks=6):
+    """Multi-car path planning with bidirectional edge reservations.
 
-    width = map_data.get('width', 100)
-    height = map_data.get('height', 100)
-    obstacles = map_data.get('obstacles', [])
-    landmarks = map_data.get('landmarks', [])
+    heur: "manhattan" | "chebyshev" | "alt" (默认)。
+       manhattan — 原版, 对 8 方向移动高估 → 可能非最优。
+       chebyshev — 8 方向等代价的真实最优启发式, 零预计算。
+       alt       — Chebyshev 上叠加地标差分 (ALT), 障碍感知更紧, 最快且最优。
+    """
+    map_data = load_normalized(map_file)
+
+    width = map_data['width']
+    height = map_data['height']
+    obstacles = map_data['obstacles']
+    landmarks = map_data['landmarks']
 
     obs_set = set()
     for obs in obstacles:
-        if isinstance(obs, list) and len(obs) == 2:
-            obs_set.add((obs[0], obs[1]))
-        elif isinstance(obs, dict) and 'x' in obs and 'y' in obs:
-            obs_set.add((obs['x'], obs['y']))
+        obs_set.add((obs[0], obs[1]))
 
     lm_dict = {}
     for lm in landmarks:
         if 'name' in lm and 'x' in lm and 'y' in lm:
             lm_dict[lm['name']] = (lm['x'], lm['y'])
+
+    # ── 启发式选择 ──
+    hfun = {"manhattan": manhattan, "chebyshev": chebyshev}.get(heur, chebyshev)
+    if heur == "alt":
+        from agv_world_qos_alt import build_differential
+        diff = build_differential(obs_set, width, height, n_alt_landmarks,
+                                  x_min=0, y_min=0, verbose=True)
+
+        def hfun(n, g):
+            return max(chebyshev(n, g), diff(n, g))
 
     x_min, y_min = 0, 0
 
@@ -165,6 +191,8 @@ def plan_paths(map_file, num_cars=0, tasks=None, stagger=2):
     # ── Plan sequentially, car by car, leg by leg ──
     reservations = set()
     car_paths = []
+    stats = {"expanded": 0}
+    t0 = time.perf_counter()
 
     for car_id, chain in enumerate(planned_chains):
         start_coord = lm_dict[chain[0]]
@@ -181,7 +209,7 @@ def plan_paths(map_file, num_cars=0, tasks=None, stagger=2):
             goal = lm_dict[stop_name]
             path = astar_with_time(width, height, obs_set, current, goal,
                                    t, reservations, x_min, y_min,
-                                   dwell=STOP_TICKS)
+                                   dwell=STOP_TICKS, hfun=hfun, stats=stats)
             if not path:
                 print(f"Car {car_id} {chain} failed at leg → {stop_name} (t={t}).")
                 ok = False
@@ -221,6 +249,7 @@ def plan_paths(map_file, num_cars=0, tasks=None, stagger=2):
         })
 
     # ── Output ──
+    elapsed = time.perf_counter() - t0
     result = {"map_file": map_file, "cars": car_paths}
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"plan_v2_{timestamp}.json"
@@ -229,7 +258,10 @@ def plan_paths(map_file, num_cars=0, tasks=None, stagger=2):
     output_path = os.path.join(maps_dir, filename)
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
+    total_steps = sum(len(c["trajectory"]) for c in car_paths)
     print(f"Planning complete: maps/{filename}  ({len(car_paths)}/{len(planned_chains)} cars planned)")
+    print(f"[{heur}] solve {elapsed:.2f}s, expanded {stats['expanded']} nodes, "
+          f"total path {total_steps} steps")
     return output_path
 
 
@@ -241,6 +273,12 @@ if __name__ == "__main__":
                         help="Specific tasks, e.g. 'LM001,LM005;LM002,LM006'")
     parser.add_argument("--stagger", type=int, default=2,
                         help="Ticks between car start times (default: 2)")
+    parser.add_argument("--heuristic", choices=["manhattan", "chebyshev", "alt"],
+                        default="alt",
+                        help="Heuristic: manhattan (original, may be suboptimal), "
+                             "chebyshev (8-dir optimal), alt (differential landmarks, default)")
+    parser.add_argument("--alt-landmarks", type=int, default=6,
+                        help="Number of ALT differential landmarks (default 6)")
 
     args = parser.parse_args()
 
@@ -255,4 +293,5 @@ if __name__ == "__main__":
 
     num_cars = args.cars if args.cars else (0 if task_list else 2)
 
-    plan_paths(args.map_file, num_cars=num_cars, tasks=task_list, stagger=args.stagger)
+    plan_paths(args.map_file, num_cars=num_cars, tasks=task_list, stagger=args.stagger,
+               heur=args.heuristic, n_alt_landmarks=args.alt_landmarks)

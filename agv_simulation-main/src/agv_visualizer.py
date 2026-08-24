@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import argparse
+from agv_map_common import load_normalized
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -24,21 +25,20 @@ def visualize(filename, interval=100):
         print(f"Error: Map file '{map_file}' not found.")
         sys.exit(1)
 
-    with open(map_file, "r") as f:
-        map_data = json.load(f)
+    map_data = load_normalized(map_file)
     
     cars = plan_data.get("cars", [])
     width = map_data["width"]
     height = map_data["height"]
     
-    raw_obstacles = map_data.get("obstacles", [])
+    raw_obstacles = map_data["obstacles"]
     has_negative = False
     
     # 转换为 numpy 矩阵进行极速渲染
     # 处理坐标原点
     for o in raw_obstacles:
-        ox = o["x"] if isinstance(o, dict) else o[0]
-        oy = o["y"] if isinstance(o, dict) else o[1]
+        ox = o[0] if isinstance(o, list) else o["x"]
+        oy = o[1] if isinstance(o, list) else o["y"]
         if ox < 0 or oy < 0:
             has_negative = True
             break
@@ -49,8 +49,8 @@ def visualize(filename, interval=100):
     # 创建背景掩码矩阵
     grid = np.zeros((height, width))
     for o in raw_obstacles:
-        ox = o["x"] if isinstance(o, dict) else o[0]
-        oy = o["y"] if isinstance(o, dict) else o[1]
+        ox = o[0] if isinstance(o, list) else o["x"]
+        oy = o[1] if isinstance(o, list) else o["y"]
         # 映射到矩阵索引 (y从上往下，或者配合 origin='lower')
         iy, ix = int(oy - y_min), int(ox - x_min)
         if 0 <= ix < width and 0 <= iy < height:

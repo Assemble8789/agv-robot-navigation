@@ -4,6 +4,7 @@ import random
 import argparse
 import datetime
 import os
+from agv_map_common import load_normalized
 
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -93,23 +94,19 @@ def plan_paths(map_file, num_cars=0, tasks=None):
     """
     路径规划主函数
     """
-    # 读取地图文件
-    with open(map_file, 'r') as f:
-        map_data = json.load(f)
+    # 读取地图文件（自动修复/归一化/补地标）
+    map_data = load_normalized(map_file)
     
     # 解析地图数据
-    width = map_data.get('width', 100)
-    height = map_data.get('height', 100)
-    obstacles = map_data.get('obstacles', [])
-    landmarks = map_data.get('landmarks', [])
+    width = map_data['width']
+    height = map_data['height']
+    obstacles = map_data['obstacles']
+    landmarks = map_data['landmarks']
     
     # 构建障碍物集合
     obs_set = set()
     for obs in obstacles:
-        if isinstance(obs, list) and len(obs) == 2:
-            obs_set.add((obs[0], obs[1]))
-        elif isinstance(obs, dict) and 'x' in obs and 'y' in obs:
-            obs_set.add((obs['x'], obs['y']))
+        obs_set.add((obs[0], obs[1]))
     
     # 构建地标字典
     lm_dict = {}
