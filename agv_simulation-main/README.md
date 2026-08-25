@@ -12,17 +12,25 @@ AGV（自动导引运输车）仿真实验平台，支持地图编辑、多车�
 │   ├── agv_world.py          实时仿真引擎
 │   ├── agv_world_web.py      Web API 封装
 │   ├── agv_world_qos.py      QoS 优先仿真引擎 (AGV 时空 A* 本体)
+│   ├── agv_map_common.py     地图归一化加载层 (外部浮点地图 → 0.1m 整数格)
+│   ├── agv_map_convert.py    外部地图转换器 (--res/--landmarks/--to-meters)
 │   ├── agv_visualizer.py     动画回放
-│   └── bridge/               AGV ↔ MuJoCo 桥接 + 人形机器人协同 (推荐入口)
-│       ├── planner_node.py   规划节点: 包 AGVWorld, 调度/让行/排队
-│       ├── mujoco_node.py    仿真节点: MuJoCo 渲染 + 机器人, /clock 时间主
-│       ├── demo_bridge.py    入口: 建 Bus + 两节点
-│       ├── validate_agv.py   验证矩阵 (车数×路径, markdown 报告)
-│       ├── _record_trajectory.py / _playback.py   播放回放
-│       └── ...               (详见 src/README.md)
+│   ├── bridge/               AGV ↔ MuJoCo 桥接 + 人形机器人协同 (推荐入口)
+│   │   ├── planner_node.py   规划节点: 包 AGVWorld, 调度/让行/排队
+│   │   ├── mujoco_node.py    仿真节点: MuJoCo 渲染 + 机器人, /clock 时间主
+│   │   ├── demo_bridge.py    入口: 建 Bus + 两节点
+│   │   ├── validate_agv.py   验证矩阵 (车数×路径, markdown 报告)
+│   │   ├── _record_trajectory.py / _playback.py   播放回放
+│   │   └── ...               (详见 src/README.md)
+│   └── bridge_wangting/      小数版 0.1m 地图桥接 (等待直到空闲 A* + 膨胀 + 机器人)
+│       ├── astar.py          修正 ALT 时空 A* / 等待直到空闲 A* (时间折叠)
+│       ├── run_wangting.py   入口: --demo5/--cars/--robot/--pure/--headless
+│       ├── pure_agv.py       离线预规划 (t=0 同时发车)
+│       ├── record_traj.py    录制位置 → 2D 回放
+│       └── ...               (详见 src/bridge_wangting/README.md)
 ├── test/             # 测试脚本
 ├── maps/             # 地图 / 规划 / 图片数据
-├── docs/             # 设计文档 + 验证报告 (agv_validation_robot.md)
+├── docs/             # 设计文档 + 验证报告 (agv_validation_robot.md, decimal_2d_version.md)
 ├── requirements.txt
 └── README.md
 ```
@@ -148,7 +156,34 @@ PY src/bridge/_playback.py docs/traj_5_p0.json
 
 - 5 车 93% / 10 车 95% / 15 车 86%, **机器人碰撞 0~2 次** (基线 0~13, 对穿清零)
 
-### 8. 测试
+### 8. 小数版地图 + 等待直到空闲 A* (src/bridge_wangting/)
+
+商用 AGV 地图导出文件（0.1m 浮点点云）→ 整数格 A* → AGV↔MuJoCo bridge（含机器人）：
+
+- **归一化** `agv_map_common.load_normalized`：修损坏 JSON → 浮点转 0.1m 整数格（round 防
+  二进制误差）→ 裁包围盒平移到 (0,0) → 自动补地标，附 `_resolution_m`/`_origin_offset_m`
+- **等待直到空闲 A\*** `bridge_wangting/astar.astar_waitfree`：状态键 `(x,y,dir)` 不含 t，
+  移动到被占邻居 → 原地算最早空闲时刻跳过去（等待隐式）→ 时间维折叠，0.1m 大图不爆状态
+  （修复原 `_astar_core` 缺 `best_cost_to_state` 剪枝导致的大图 max_iter 失败）
+- 障碍按 AGV 半径膨胀（球不穿墙）、米制帧 cell↔meter 精确换算、机器人避窄走廊、2D 录制回放
+
+```powershell
+# PY = D:/download/anaconda3/envs/tutorial_for_mujoco/python.exe
+
+# 交互可视化 (AGV + 机器人 + ARC 让行)
+PY src/bridge_wangting/run_wangting.py --robot --demo5 --speed 3
+
+# headless 离线预规划 (t=0 同时发车, 5 车 ~2-8s)
+PY src/bridge_wangting/run_wangting.py --pure --demo5 --headless --steps 150
+
+# 录制 → 2D matplotlib 回放 (不卡)
+PY src/bridge_wangting/record_traj.py --demo5 --robot --steps 150 --out docs/traj_wangting_v2.json
+PY src/bridge/_playback.py docs/traj_wangting_v2.json
+```
+
+> 详细说明见 `src/bridge_wangting/README.md` 与 `docs/decimal_2d_version.md`。
+
+### 9. 测试
 
 ```bash
 python test/test_multi_agv.py                         # 多车并发（stdin 控制，需 GUI 环境）

@@ -231,7 +231,9 @@ planner 用它判断机器人目标站台 (进站优先/站台 hold)。
 |---|---|
 | `agv_world_qos.py` | QoS 时空 A\* 引擎：预约表、优先级抢占、`move_car` 规划本体 |
 | `agv_world.py` | 实时仿真引擎（交互/CLI 版） |
-| `agv_planner.py` / `agv_planner_v2.py` | 离线批量规划器 |
+| `agv_planner.py` / `agv_planner_v2.py` | 离线批量规划器 (v2 支持 `--heuristic manhattan/chebyshev/alt`) |
+| `agv_map_common.py` | **归一化加载层**: `load_normalized` 修复损坏 JSON → 浮点转 0.1m 整数格 → 自动补地标 |
+| `agv_map_convert.py` | 外部地图转换器 (`--res/--landmarks/--seed/--to-meters`) |
 | `agv_map_edit.py` | 地图编辑器（15×10, 障碍/停靠点） |
 | `agv_world_web.py` | Web API 封装（/add /move /status, 端口 8001） |
 | `agv_visualizer.py` | 动画回放 |
@@ -242,6 +244,20 @@ planner 用它判断机器人目标站台 (进站优先/站台 hold)。
 |---|---|
 | `planner_node.py` | **规划节点 (大脑)**: 包 AGVWorld, 处理命令/到站派发/进站队列/ARC 让行/REPLAN-FAIL, 发布 `/planner/path` |
 | `mujoco_node.py` | **仿真节点 (物理引擎)**: MuJoCo 步进 + AGV mocap 渲染 + 机器人物理行走, 发 `/clock` + `/sim/*` 反馈 |
+
+### bridge_wangting/ (小数版 0.1m 地图桥接)
+
+| 文件 | 干什么 |
+|---|---|
+| `astar.py` | **等待直到空闲 A\*** `astar_waitfree` (时间折叠: 状态键 `(x,y,dir)`, 被占→跳最早空闲) + 修正 ALT `astar_alt_fixed` (best_cost_to_state 剪枝) |
+| `mapframe.py` | 米制帧: `cell ↔ meter` 精确双射 (`res=0.1, offset=(-14.9,-0.4)`) |
+| `map_scene.py` | 从地图生成障碍盒/车库/MuJoCo 场景 XML (0.1m 占用格按行聚类) |
+| `wangting_nodes.py` | `WangtingPlanner`/`WangtingMujoco`: 帧换算 + 障碍膨胀(球不穿墙) + 出生不闪现 + A\* 再 patch |
+| `run_wangting.py` | 入口: `--demo/--demo4/--demo5/--cars/--robot/--robot-wp/--pure/--headless` |
+| `pure_agv.py` | 离线预规划: 短停车窗 + 等待重试 + 跳站 + t=0 同时发车 |
+| `robot_scene_wangting.py` | elf3 人形 + wangting 工厂场景文本合并 |
+| `robot_path.py` | 机器人路径: 细格 A\* 绕障碍 + 避开窄走廊 (<1.0m 不走) |
+| `record_traj.py` | 录制 AGV+机器人每整秒位置 → `bridge/_playback.py` 2D 回放 |
 
 ### 机器人
 

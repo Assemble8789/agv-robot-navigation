@@ -72,6 +72,25 @@ PY src/bridge/_playback.py docs/traj_5_p0.json
 > `PY` = `D:/download/anaconda3/envs/tutorial_for_mujoco/python.exe`（`tutorial_for_mujoco` 环境）。
 > 详细说明见 `agv_simulation-main/src/README.md`。
 
+### 5. 小数版地图 (0.1m) + 修正 A* 桥接 (agv_simulation-main/src/bridge_wangting/)
+
+把商用 AGV 地图导出文件（0.1m 浮点点云，如 `wangting...workflow2.json`）无损接入
+整数格 A*，并在 AGV↔MuJoCo bridge 里跑通（含机器人、ARC 让行）：
+
+- **归一化层** `agv_map_common.load_normalized`：修复损坏 JSON → 浮点转 0.1m 整数格 → 自动补地标
+- **等待直到空闲 A\*** `bridge_wangting/astar.astar_waitfree`：状态键 `(x,y,dir)` 不含时间，
+  移动到被占邻居时原地算最早空闲时刻直接跳过去 → 时间维折叠，0.1m 大图不再爆状态
+- 障碍按 AGV 半径膨胀（球不穿墙）、米制帧换算、机器人避窄走廊、2D 录制回放
+
+```bash
+PY src/bridge_wangting/run_wangting.py --robot --demo5 --speed 3      # 交互可视化
+PY src/bridge_wangting/run_wangting.py --pure --demo5 --headless --steps 150  # 离线预规划
+PY src/bridge_wangting/record_traj.py --demo5 --robot --steps 150     # 录制 → 2D 回放
+PY src/bridge/_playback.py docs/traj_wangting_v2.json
+```
+
+> 详细说明见 `agv_simulation-main/src/bridge_wangting/README.md` 和 `agv_simulation-main/docs/decimal_2d_version.md`。
+
 ## 目录结构
 
 ```
@@ -82,6 +101,7 @@ PY src/bridge/_playback.py docs/traj_5_p0.json
 ├── agv_simulation-main/
 │   ├── src/                    # AGV QoS 调度核心
 │   ├── src/bridge/             # AGV ↔ MuJoCo 桥接 + ARC 协同 (推荐)
+│   ├── src/bridge_wangting/    # 小数版 0.1m 地图 + 等待直到空闲 A* 桥接 (wangting 工厂)
 │   ├── maps/                   # 地图 / 机器人路径
 │   └── docs/                   # 验证报告
 └── docs/                       # 仓库级文档 / 报告
