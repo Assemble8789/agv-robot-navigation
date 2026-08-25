@@ -59,6 +59,43 @@ PY src/bridge_wangting/record_traj.py --demo5 --robot --steps 150 --out docs/tra
 PY src/bridge/_playback.py docs/traj_wangting_v2.json
 ```
 
+## 规划时间
+
+> 以下均为实测（0.1m 网格 367×253 + 障碍膨胀 0.2m；差分表缓存后不含 4.4s 一次性预计算）。
+
+### A. A* 算法本体对比（单腿 LM008→LM006，同地图无预约）
+
+| A* 版本 | 耗时 | 备注 |
+|---|---|---|
+| 原版 `astar_with_time` (Manhattan) | 15.7s | 路径重构缺陷（len=2） |
+| `astar_alt`（原 bridge 默认） | **FAIL** | 缺 `best_cost_to_state` 剪枝 → 时间维爆掉撞 `max_iter=1e6` |
+| `astar_alt_fixed`（best_cost_to_state 剪枝） | 1.4s | 修复但展开仍多（~14.5 万态） |
+| **`astar_waitfree`（等待直到空闲）** | **0.58s** | 状态键 `(x,y,dir)` 不含 t，被占→跳最早空闲 |
+
+### B. 5 车离线预规划（demo5 链：LM001→LM006→LM009 等 5 车×2 段）
+
+| 方案 | 耗时 | 完成 |
+|---|---|---|
+| `astar_alt_fixed`（无差分缓存，每段重算 4.4s） | 53.4s | 5/5 |
+| `waitfree` + 差分缓存（共享站台, t=0） | **8.0s** | 5/5 |
+| `waitfree` + 差分缓存（唯一站台 / 错峰 stagger） | **2.2~3.1s** | 5/5 |
+
+### C. 随机点验证（waitfree，差分表缓存后）
+
+| 场景 | 成功率 | 耗时 |
+|---|---|---|
+| 25 对随机自由格 | 25/25 = 100% | avg **0.27s/对**（min 0.004s / max 2.13s） |
+| 15 对累积预约（模拟顺序多车） | 15/15 = 100% | **4.21s** 总计 |
+
+### D. 同 5 车同路径：批处理 vs 在线（waitfree）
+
+| 规划器 | 耗时 | 说明 |
+|---|---|---|
+| `agv_planner_v2`（8 方向批处理 + ALT） | 5.8s | 状态 = (x,y)，无朝向，对角一步 |
+| planner_node QoS（运动学时空 A*，waitfree） | ~8s | 状态 = (x,y,dir)，含转向/等待；慢在状态空间 ×4 朝向 |
+
+> 主要提速来源：**差分表缓存**（每段省 4.4s 预计算）+ **时间折叠**（状态从无限时间维塌缩到 `(x,y,dir)`）。
+
 ## 关键参数
 
 - `--inflate`：障碍膨胀半径（默认 AGV_RADIUS=0.2m，0 关闭）→ A* 只走球能放下的格，球不穿墙
